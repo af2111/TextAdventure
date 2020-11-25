@@ -1,4 +1,4 @@
-import os, random, time
+import os, random, time, platform
 #Item Class(Has a name, weight, price and type)
 class Item:
     def __init__(self, name, weight, price, itemType):
@@ -16,20 +16,20 @@ class Inventory:
     def __init__(self, maxWeight):
         self.maxWeight = maxWeight
         self.items = [Weapon("Stick", 2, 0, 1)]
-        self.currentWeight = 0
     #Method to calculate the current weight of the inventory
     def CurrentWeight(self): 
-        self.currentWeight = 0
+        state = 0
         for item in self.items:
-            if self.currentWeight + item.weight <= self.maxWeight:
-                self.currentWeight += item.weight
-        return self.currentWeight
+            if state + item.weight <= self.maxWeight:
+                state += item.weight
+        return state
     #Push an Item to the Inventory and checks if it doesnt overgo the weight limit
     def push(self, item):
         if self.CurrentWeight() + item.weight < self.maxWeight:
             self.items.append(item)
         else:
             print("Your inventory is full.")
+            return 0
 
 #Class Character which is a parent class for every Monster and NPC and shouldnt be mistaken with the Player Class.         
 class Character:
@@ -53,11 +53,11 @@ class Field:
 class Map:
     def __init__(self, width, height):
         self.state = []
-        self.x = 0
-        self.y = 0
+        self.x = 5
+        self.y = 5
         self.height = height
         self.width = width
-        #Create a completely random map(2 dimensional list)
+        #Create a completely random map(2 dimensional list) that consists of instances of fields.
         for i in range(width):
             fields = []
             for i in range(height):
@@ -120,11 +120,16 @@ def inventory(p, m):
     print(f"\nTotal Weight: {p.inventory.CurrentWeight()}")
 def pickup(p, m):
     if m.getItems():
-        p.inventory.push(m.getItems())
-        m.removeLoot()
-        print("Picked up item!")
+        if p.inventory.push(m.getItems()) != 0:
+            m.removeLoot()
+            print("Picked up item!")
     else:
         print("Item already picked up!")
+def clear():
+    if platform.system() == "Linux" or platform.system("Darwin"):
+        os.system("clear")
+    elif platform.system() == "Windows":
+        os.system("cls")
 cmds = {
     "help": print_help,
     "forward": forward,
@@ -137,9 +142,9 @@ cmds = {
     "exit": quit_game
 }
 if __name__ == "__main__":
-    os.system("clear")
+    clear()
     name = input("Choose a name\n")
-    os.system("clear")
+    clear()
     p = Player(name, 100, 10)
     m = Map(10, 10)
     print("You wake up. You have nothing but a stick and a bag.")
@@ -148,7 +153,7 @@ if __name__ == "__main__":
     m.printState()
     while True:
         cmd = input("> ").lower().split(" ")
-        os.system("clear")
+        clear()
         if cmd[0] in cmds:
             cmds[cmd[0]](p, m)
         else:
