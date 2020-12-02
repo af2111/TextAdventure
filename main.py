@@ -258,7 +258,7 @@ def getArmorBoni(p, m):
                     p.stats[key] = p.basestats[key] + combinedStat 
 def showarmor(p, m):
     for piece in p.armor:
-        print(piece + p.armor[piece].name)
+        print(piece + ":  " + p.armor[piece].name)
 
 
 def right(p, m):
@@ -272,12 +272,15 @@ def inventory(p, m):
         print(f"{i + 1}. {p.inventory.items[i].name}, Type {p.inventory.items[i].type}, Weight: {p.inventory.items[i].weight}, Price: {p.inventory.items[i].price}")
     print(f"\nTotal Weight: {p.inventory.CurrentWeight()}")
 def pickup(p, m):
-    if m.getItems():
-        if p.inventory.push(m.getItems()) != 0:
-            m.removeLoot()
-            print("Picked up item!")
+    if not m.state[m.x][m.y].monsters:
+        if m.getItems():
+            if p.inventory.push(m.getItems()) != 0:
+                m.removeLoot()
+                print("Picked up item!")
+        else:
+            print("Item already picked up!")
     else:
-        print("Item already picked up!")
+        print("Monsters are guarding the loot!")
 def swapSlot(p, m):
     p.inventory.swapSlot()
 def equip(p, m):
