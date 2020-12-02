@@ -12,6 +12,10 @@ class Item:
         self.price = price
         self.type = itemType
         self.alreadyEquipped = False
+class Potion:
+    def __init__(self, name, weight, price, bonusStats):
+        Item.__init__(self, name, weight, price, "Potion")
+        self.bonusStats = bonusStats
 #Weapon inherits from Item and has a stat damage as a bonus
 class Weapon(Item):
     def __init__(self, name, weight, price, bonusStats):
@@ -147,7 +151,9 @@ class Map:
             for i in range(height):
                 fields.append(Field(["forest", "hills", "flatland", "desert"], [Weapon("Club", 5, 5, {"ap": 5}), Weapon("Wooden Sword", 3, 7, {"ap": 4}), Armor("Chain Jacket", 7, 10, {
                     "defense": 10
-                }, "jacket")], monsters))
+                }, "jacket"), Potion("Health Potion", 4, 20, {
+                    "hp": 20
+                })], monsters))
             self.state.append(fields)
     def forward(self):
         if self.x == self.height - 1:
@@ -307,7 +313,13 @@ def stats(p, m):
 def fight(p, m):
     fight = Fight(p, m.state[m.x][m.y].monsters)
     fight.loop()
-
+def consume(p, m):
+    if p.inventory.items[p.inventory.currentslot].type is "Potion":
+        potion = p.inventory.items.pop(p.inventory.currentslot)
+        for key in p.stats:
+            for key2 in potion.bonusStats:
+                if key is key2:
+                    p.stats[key] = p.stats[key] + potion.bonusStats[key]
 cmds = {
     "help": print_help,
     "forward": forward,
@@ -323,7 +335,8 @@ cmds = {
     "fight": fight,
     "equip": equip,
     "armor": showarmor,
-    "drop": drop
+    "drop": drop,
+    "consume": consume
 }
 if __name__ == "__main__":
     clear()
