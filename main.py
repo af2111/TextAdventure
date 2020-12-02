@@ -6,31 +6,32 @@ def clear():
         os.system("cls")
 #Item Class(Has a name, weight, price and type)
 class Item:
-    def __init__(self, name, weight, price, itemType):
+    def __init__(self, name, weight, price, itemType, droppable=True):
         self.name = name
         self.weight = weight
         self.price = price
         self.type = itemType
+        self.droppable = droppable
         self.alreadyEquipped = False
 class Potion:
-    def __init__(self, name, weight, price, bonusStats):
-        Item.__init__(self, name, weight, price, "Potion")
+    def __init__(self, name, weight, price, bonusStats, droppable=True):
+        Item.__init__(self, name, weight, price, "Potion", droppable)
         self.bonusStats = bonusStats
 #Weapon inherits from Item and has a stat damage as a bonus
 class Weapon(Item):
-    def __init__(self, name, weight, price, bonusStats):
-        Item.__init__(self, name, weight, price, "Weapon")
+    def __init__(self, name, weight, price, bonusStats, droppable=True):
+        Item.__init__(self, name, weight, price, "Weapon", droppable)
         self.stats = bonusStats
 class Armor(Item):
-    def __init__(self, name, weight, price, bonusStats, armorType):
-        Item.__init__(self, name, weight, price, "Armor")
+    def __init__(self, name, weight, price, bonusStats, armorType, droppable=True):
+        Item.__init__(self, name, weight, price, "Armor", droppable)
         self.stats = bonusStats
         self.armorType = armorType
 #Inventory has Items, a maximal weight that it can hold
 class Inventory:
     def __init__(self, maxWeight):
         self.maxWeight = maxWeight
-        self.items = [Weapon("Stick", 2, 0, {"ap": 2})]
+        self.items = [Weapon("Stick", 2, 0, {"ap": 2}, droppable=False)]
         self.currentslot = 0
     #Method to calculate the current weight of the inventory
     def CurrentWeight(self): 
@@ -115,7 +116,9 @@ class Field:
         #get a random type from a list and set it as the type of the map
         self.type = random.choice(types)
         #get a random item from the list items and define it as the loot
-        self.loot = random.choice(items)
+        self.loot = []
+        for i in range(random.randint(1, 3)):
+            self.loot.append(random.choice(items))
         self.monsters = []
         self.monsters.append(random.choice(monsters))
 #Map is a Class and can be initialized with a custom height and width
@@ -184,14 +187,18 @@ class Map:
             print("Moved left.")
             self.printState()
     def printState(self):
-        try:
-            print(f"Details about your field: \nType: {self.state[self.x][self.y].type}\nLoot: {self.getItems().name}\nMonsters: {len(self.state[self.x][self.y].monsters)}")
-        except AttributeError:
-            print(f"Details about your field: \nType: {self.state[self.x][self.y].type}\nLoot: Schon genommen!\n Monsters: {len(self.state[self.x][self.y].monsters)}")
+        
+        lootstring = "\n"
+        for i in range(len(self.getItems())):
+            lootstring += f"{self.getItems()[i].name}\n"
+        if len(self.getItems()) > 0:
+            print(f"Details about your field: \nType: {self.state[self.x][self.y].type}\nLoot: {lootstring}\nMonsters: {len(self.state[self.x][self.y].monsters)}")
+        else:
+            print(f"Details about your field: \nType: {self.state[self.x][self.y].type}\nLoot: Nothing\nMonsters: {len(self.state[self.x][self.y].monsters)}")
     def getItems(self):
         return self.state[self.x][self.y].loot
-    def removeLoot(self):
-        self.state[self.x][self.y].loot = False
+    def removeLoot(self, index):
+        self.state[self.x][self.y].loot.pop(index)
 class Fight:
     def __init__(self, player, opponents):
         self.player = player
@@ -282,10 +289,11 @@ def inventory(p, m):
     print(f"\nTotal Weight: {p.inventory.CurrentWeight()}")
 def pickup(p, m):
     if not m.state[m.x][m.y].monsters:
-        if m.getItems():
-            if p.inventory.push(m.getItems()) != 0:
-                m.removeLoot()
-                print("Picked up item!")
+        if len(m.getItems()) > 0:
+            for i in range(len(m.getItems())):
+                if p.inventory.push(m.getItems()[0]) != 0:
+                    print(f"Picked up {m.getItems()[0].name}!")
+                    m.removeLoot(0)
         else:
             print("Item already picked up!")
     else:
@@ -293,11 +301,10 @@ def pickup(p, m):
 def swapSlot(p, m):
     p.inventory.swapSlot()
 def drop(p, m):
-    if not m.state[m.x][m.y].loot:
-        m.state[m.x][m.y].loot = p.inventory.items.pop(p.inventory.currentslot)
-    else: 
-        print("There already lies an item here!")
-        
+    if p.inventory.items[p.inventory.currentslot].droppable:
+       m.state[m.x][m.y].loot.append(p.inventory.items.pop(p.inventory.currentslot))
+    else:
+        print("You can't drop this item!")
 def equip(p, m):
     if p.inventory.items[p.inventory.currentslot].type is "Weapon":
         p.inventory.giveBoni(p)
