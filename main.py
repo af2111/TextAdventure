@@ -18,9 +18,10 @@ class Weapon(Item):
         Item.__init__(self, name, weight, price, "Weapon")
         self.stats = bonusStats
 class Armor(Item):
-    def __init__(self, name, weight, price, bonusStats):
+    def __init__(self, name, weight, price, bonusStats, armorType):
         Item.__init__(self, name, weight, price, "Armor")
         self.stats = bonusStats
+        self.armorType = armorType
 #Inventory has Items, a maximal weight that it can hold
 class Inventory:
     def __init__(self, maxWeight):
@@ -144,7 +145,9 @@ class Map:
         for i in range(width):
             fields = []
             for i in range(height):
-                fields.append(Field(["forest", "hills", "flatland", "desert"], [Weapon("Club", 5, 5, {"ap": 5}), Weapon("Wooden Sword", 3, 7, {"ap": 4})], monsters))
+                fields.append(Field(["forest", "hills", "flatland", "desert"], [Weapon("Club", 5, 5, {"ap": 5}), Weapon("Wooden Sword", 3, 7, {"ap": 4}), Armor("Chain Jacket", 7, 10, {
+                    "defense": 10
+                }, "jacket")], monsters))
             self.state.append(fields)
     def forward(self):
         if self.x == self.height - 1:
@@ -283,8 +286,21 @@ def pickup(p, m):
         print("Monsters are guarding the loot!")
 def swapSlot(p, m):
     p.inventory.swapSlot()
+def drop(p, m):
+    if not m.state[m.x][m.y].loot:
+        m.state[m.x][m.y].loot = p.inventory.items.pop(p.inventory.currentslot)
+    else: 
+        print("There already lies an item here!")
+        
 def equip(p, m):
-    p.inventory.giveBoni(p)
+    if p.inventory.items[p.inventory.currentslot].type is "Weapon":
+        p.inventory.giveBoni(p)
+    elif p.inventory.items[p.inventory.currentslot].type is "Armor":
+        piece = p.inventory.items[p.inventory.currentslot]
+        armortype = piece.armorType
+        p.inventory.items[p.inventory.currentslot] = p.armor[armortype]
+        p.armor[armortype] = piece
+        getArmorBoni(p, m)
 def stats(p, m):
     for key in p.stats:
         print(f"{key}: {p.stats[key]}")
@@ -306,7 +322,8 @@ cmds = {
     "stats": stats,
     "fight": fight,
     "equip": equip,
-    "armor": showarmor
+    "armor": showarmor,
+    "drop": drop
 }
 if __name__ == "__main__":
     clear()
@@ -324,16 +341,16 @@ if __name__ == "__main__":
     }
     leatherBoots = Armor("Leather Boots", 2, 1, {
         "defense": 1
-    })
+    }, "boots")
     leatherLeggings = Armor("Leather Leggings", 3, 2, {
         "defense": 2
-    })
+    }, "leggings")
     leatherJacket = Armor("Leather Jacket", 4, 3, {
         "defense": 5
-    })
+    }, "jacket")
     leatherCap = Armor("Leather Cap", 2, 1, {
         "defense": 2
-    })
+    }, "cap")
     p = Player(name, stats, basestats, [DmgAttack("Hit", "Hit your opponent with your equipped Weapon.", 10)], {
         "boots": leatherBoots,
         "leggings": leatherLeggings,
