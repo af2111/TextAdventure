@@ -1,6 +1,6 @@
 import os, random, time, platform
 def clear():
-    if platform.system() == "Linux" or platform.system("Darwin"):
+    if platform.system() == "Linux" or platform.system() == "Darwin":
         os.system("clear")
     elif platform.system() == "Windows":
         os.system("cls")
@@ -88,27 +88,27 @@ class DmgAttack(Attack):
         Attack.__init__(self, name, desc, "Damage")
         self.stat = dmg
     def attack(self, attacker, target):
-        target.stats["hp"] -= self.stat * attacker.stats["ap"] / target.stats["defense"]
+        target.stats["hp"] -= int(self.stat * attacker.stats["ap"] / target.stats["defense"])
 
 
     
 
 #Class Character which is a parent class for every Monster and NPC and shouldnt be mistaken with the Player Class.         
 class Character:
-    def __init__(self, name, stats):
+    def __init__(self, name, stats, basestats):
         self.name = name
         self.stats = stats
+        self.basestats = basestats
 class Monster(Character):
-    def __init__(self, name, stats, attacks):
-        Character.__init__(self, name, stats)
+    def __init__(self, name, stats, attacks, basestats):
+        Character.__init__(self, name, stats, basestats)
         self.attacks = attacks
 #Player inherits from Character and has an inventory with 40 MaxWeight.
 class Player(Character):
     def __init__(self, name, stats, basestats, attacks, armor):
-        Character.__init__(self, name, stats)
+        Character.__init__(self, name, stats, basestats)
         self.inventory = Inventory(40)
         self.attacks = attacks
-        self.basestats = basestats
         self.armor = armor
 #Field is a class to define every field on the map. 
 class Field:
@@ -120,7 +120,9 @@ class Field:
         for i in range(random.randint(1, 3)):
             self.loot.append(random.choice(items))
         self.monsters = []
-        self.monsters.append(random.choice(monsters))
+        randMonster = random.choice(monsters)
+        newMonster = Monster(randMonster.name, randMonster.stats, randMonster.attacks, randMonster.basestats)
+        self.monsters.append(newMonster)
 #Map is a Class and can be initialized with a custom height and width
 class Map:
     def __init__(self, width, height):
@@ -138,7 +140,11 @@ class Map:
             }, [
                 DmgAttack("Punch", "Hits you with its fist", 10),
                 DmgAttack("Kick", "Kicks you with its Feet", 12)
-            ]),
+            ], {
+                "hp": 50,
+                "ap": 10,
+                "defense": 5
+            }),
             Monster("Bak", {
                 "hp": 100,
                 "ap": 6,
@@ -146,7 +152,7 @@ class Map:
             }, [
                 DmgAttack("Punch", "Hits you with its fist", 10),
                 DmgAttack("Kick", "Kicks you with its Feet", 12)
-            ])
+            ], {"hp": 100, "ap": 6, "defense": 7})
             
         ]
         for i in range(width):
@@ -191,8 +197,11 @@ class Map:
         lootstring = "\n"
         for i in range(len(self.getItems())):
             lootstring += f"{self.getItems()[i].name}\n"
+        mobstring = "\n"
+        for i in range(len(self.state[self.x][self.y].monsters)):
+            mobstring += f"{self.state[self.x][self.y].monsters[i].name}"
         if len(self.getItems()) > 0:
-            print(f"Details about your field: \nType: {self.state[self.x][self.y].type}\nLoot: {lootstring}\nMonsters: {len(self.state[self.x][self.y].monsters)}")
+            print(f"Details about your field: \nType: {self.state[self.x][self.y].type}\nLoot: {lootstring}\nMonsters: {mobstring}")
         else:
             print(f"Details about your field: \nType: {self.state[self.x][self.y].type}\nLoot: Nothing\nMonsters: {len(self.state[self.x][self.y].monsters)}")
     def getItems(self):
@@ -212,12 +221,14 @@ class Fight:
             elif self.turnCount % 2 == 1:
                 for opponent in self.opponents:
                     self.opponentTurn(opponent, self.player)
-                    self.turnCount += 1
+                self.turnCount += 1
             if self.player.stats["hp"] <= 0:
                 exit("You died!")
-            for opponent in self.opponents:
-                if opponent.stats["hp"] <= 0:
-                    self.opponents.remove(opponent)
+            for i in range(len(self.opponents)):
+                if self.opponents[i].stats["hp"] <= 0:
+                    self.opponents[i].stats["hp"] = self.opponents[i].basestats["hp"]
+                    self.opponents.pop(i)
+                    i = i - 1
         print("You won!")
     def chooseAttack(self):
         print("Attacks:")
@@ -246,14 +257,17 @@ class Fight:
         target = chosenValues[1]
         attack.attack(self.player, target)
         print(f"You attacked your opponent with {attack.name}")
-        print(f"He's now at {target.stats['hp']}")
+        if target.stats["hp"] < 0:
+            print(f"He's now at 0 HP")
+        else:
+            print(f"He's now at {target.stats['hp']} HP")
         time.sleep(2)
         clear()
     def opponentTurn(self, attacker, target):
         attack = random.choice(attacker.attacks)
         attack.attack(attacker, target)
         print(f"{attacker.name} hit you with {attack.name}")
-        print(f"You're now at {target.stats['hp']}")
+        print(f"You're now at {target.stats['hp']} HP")
         time.sleep(2)
         clear()
 def print_help(p, m):
@@ -303,12 +317,14 @@ def swapSlot(p, m):
 def drop(p, m):
     if p.inventory.items[p.inventory.currentslot].droppable:
        m.state[m.x][m.y].loot.append(p.inventory.items.pop(p.inventory.currentslot))
+       p.inventory.currentslot -= 1
+       equip(p, m)
     else:
         print("You can't drop this item!")
 def equip(p, m):
-    if p.inventory.items[p.inventory.currentslot].type is "Weapon":
+    if p.inventory.items[p.inventory.currentslot].type == "Weapon":
         p.inventory.giveBoni(p)
-    elif p.inventory.items[p.inventory.currentslot].type is "Armor":
+    elif p.inventory.items[p.inventory.currentslot].type == "Armor":
         piece = p.inventory.items[p.inventory.currentslot]
         armortype = piece.armorType
         p.inventory.items[p.inventory.currentslot] = p.armor[armortype]
@@ -321,11 +337,11 @@ def fight(p, m):
     fight = Fight(p, m.state[m.x][m.y].monsters)
     fight.loop()
 def consume(p, m):
-    if p.inventory.items[p.inventory.currentslot].type is "Potion":
+    if p.inventory.items[p.inventory.currentslot].type == "Potion":
         potion = p.inventory.items.pop(p.inventory.currentslot)
         for key in p.stats:
             for key2 in potion.bonusStats:
-                if key is key2:
+                if key == key2:
                     p.stats[key] = p.stats[key] + potion.bonusStats[key]
 cmds = {
     "help": print_help,
@@ -387,6 +403,6 @@ if __name__ == "__main__":
         cmd = input("> ").lower().split(" ")
         clear()
         if cmd[0] in cmds:
-            cmds[cmd[0]](p, m)
+            cmds[0](p, m)
         else:
             print(f"BOKE {name.upper()} BOKE (Der Befehl \"{cmd[0]}\" existiert nicht)")
