@@ -235,8 +235,9 @@ class Fight:
         for attack in self.player.attacks:
             print(str(self.player.attacks.index(attack) + 1) + f": {attack.name}")
         print("Opponents:")
+        i = 1
         for opponent in self.opponents:
-            print(opponent.name)
+            print(str(i) + ": " + str(opponent.name))
         while True:
             try:
                 chosen = self.player.attacks[int(input("Which attack do you choose?")) - 1]
@@ -400,9 +401,14 @@ if __name__ == "__main__":
     print("type \"help\" for help")
     m.printState()
     while True:
-        cmd = input("> ").lower().split(" ")
+        cmd = input("> ").lower()
         clear()
-        if cmd[0] in cmds:
-            cmds[0](p, m)
+        if cmd in cmds:
+            cmds[cmd](p, m)
         else:
-            print(f"BOKE {name.upper()} BOKE (Der Befehl \"{cmd[0]}\" existiert nicht)")
+            print(f"BOKE {name.upper()} BOKE (Der Befehl \"{cmd[0]}\" existiert nicht, hier sind alle befehle:)")
+            time.sleep(1.5)
+            cmds["help"](p, m)  
+              
+              
+              
